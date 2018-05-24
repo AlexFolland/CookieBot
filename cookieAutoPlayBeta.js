@@ -32,7 +32,7 @@ AutoPlay.preNightMode = function() { var h=(new Date).getHours(); return(h>=22);
 
 AutoPlay.nightMode = function() { 
   var h=(new Date).getHours();
-  if(h>=7 && h<23) { // be active
+//if(h>=7 && h<23) { // be active
     AutoPlay.addActivity('Daytime! The bot is working.');
     if (AutoPlay.night) AutoPlay.useLump();
     AutoPlay.night=false;
@@ -46,7 +46,7 @@ AutoPlay.nightMode = function() {
 	}
 	AutoPlay.nightAtGarden(false);
     return false;
-  }
+//}
   if (AutoPlay.night) { AutoPlay.addActivity('The bot is sleeping.'); return true; } //really sleep now
   AutoPlay.addActivity('Preparing for the night.');
   var gs=Game.Upgrades["Golden switch [off]"]; if(gs.unlocked) {
