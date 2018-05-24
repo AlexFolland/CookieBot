@@ -15,9 +15,6 @@ AutoPlay.run = function () {
   if (Game.AscendTimer>0 || Game.ReincarnateTimer>0) return;
   if (AutoPlay.delay>0) { AutoPlay.delay--; return; }
   if (AutoPlay.nightMode()) { var age=Date.now()-Game.lumpT; AutoPlay.cheatSugarLumps(age); return; }
-  AutoPlay.handleGoldenCookies();
-  AutoPlay.handleBuildings();
-  AutoPlay.handleUpgrades();
   AutoPlay.handleSeasons();
   AutoPlay.handleSugarLumps();
   AutoPlay.handleDragon();
@@ -26,7 +23,10 @@ AutoPlay.run = function () {
   AutoPlay.handleNotes();
 }
 
-AutoPlay.clickAsync = function () {
+AutoPlay.runFast = function () {
+  AutoPlay.handleGoldenCookies();
+  AutoPlay.handleBuildings();
+  AutoPlay.handleUpgrades();
   AutoPlay.handleClicking();
 }
 
@@ -792,7 +792,7 @@ AutoPlay.addActivity = function(str) {
 AutoPlay.info("Pre-release for gardening."); 
 if (AutoPlay.autoPlayer) { AutoPlay.info("replacing old version of autoplay"); clearInterval(AutoPlay.autoPlayer); }
 AutoPlay.autoPlayer = setInterval(AutoPlay.run, 300); // was 100 before, but that is too quick
-AutoPlay.autoClicker = setInterval(AutoPlay.clickAsync, 17);
+AutoPlay.autoClicker = setInterval(AutoPlay.runFast, 17);
 AutoPlay.findNextAchievement();
 l('versionNumber').innerHTML='v. '+Game.version+" (with autoplay v."+AutoPlay.version+")";
 l('versionNumber').innerHTML='v. '+Game.version+' <span '+Game.getDynamicTooltip('AutoPlay.whatTheBotIsDoing','this')+">(with autoplay v."+AutoPlay.version+")"+'</span>';
