@@ -36,21 +36,14 @@ AutoPlay.preNightMode = function() { var h=(new Date).getHours(); return(h>=22);
 AutoPlay.nightMode = function() { 
   var h=(new Date).getHours();
 //if(h>=7 && h<23) { // be active
-    AutoPlay.addActivity('Daytime! The bot is working.');
     if (AutoPlay.night) AutoPlay.useLump();
     AutoPlay.night=false;
-    var gs=Game.Upgrades["Golden switch [on]"]; if(gs.unlocked) {
-      if (Game.isMinigameReady(Game.Objects["Temple"])) {
-        AutoPlay.removeSpirit(1,"asceticism");
-//        AutoPlay.assignSpirit(1,"decadence",0);
-//        AutoPlay.assignSpirit(2,"labor",0);
-      }
-	  gs.buy();
-	}
+    AutoPlay.nightAtTemple(false);
+    var gs=Game.Upgrades["Golden switch [on]"]; if(gs.unlocked) { gs.buy(); }
 	AutoPlay.nightAtGarden(false);
     return false;
 //}
-  if (AutoPlay.night) { AutoPlay.addActivity('The bot is sleeping.'); return true; } //really sleep now
+  if (AutoPlay.night) { AutoPlay.activities='The bot is sleeping.'; return true; } //really sleep now
   AutoPlay.addActivity('Preparing for the night.');
   var gs=Game.Upgrades["Golden switch [off]"]; if(gs.unlocked) {
     AutoPlay.handleGoldenCookies();
@@ -58,14 +51,8 @@ AutoPlay.nightMode = function() {
     for (var i in Game.buffs) { if(Game.buffs[i].time>=0) buffCount++; }
 	if((buffCount==1 && Game.hasBuff("Clot")) || h<7) gs.buy();
 	if(!gs.bought) return true; // do not activate spirits before golden switch
-    if (Game.isMinigameReady(Game.Objects["Temple"])) {
-//	  AutoPlay.assignSpirit(0,"mother",1); 
-      AutoPlay.removeSpirit(1,"decadence");
-      AutoPlay.removeSpirit(2,"labor");
-      AutoPlay.assignSpirit(1,"asceticism",1);
-      AutoPlay.assignSpirit(2,"industry",1);
     }
-  }
+  AutoPlay.nightAtTemple(true);
   AutoPlay.nightAtGarden(true);
   AutoPlay.night=true;
   return true;
@@ -78,7 +65,19 @@ AutoPlay.handleGoldenCookies = function() { // pop the first golden cookie or re
     var s=Game.shimmers[sx];
     if((s.type!="golden") || (s.life<Game.fps) || (!Game.Achievements["Early bird"].won)) { s.pop(); return; }
     if((s.life/Game.fps)<(s.dur-2) && (Game.Achievements["Fading luck"].won)) { s.pop(); return; }
-} }
+  }
+  var daysInRun=(Date.now()-Game.startDate)/1000/60/60/24;
+  if (daysInRun > 10) { // more than 10 days in this run - need more (golden) cookies
+    AutoPlay.cheatGoldenCookies(daysInRun/10);
+  }
+}
+
+AutoPlay.cheatGoldenCookies = function(level) { // level is from 0 to 10
+  AutoPlay.addActivity('Cheating golden cookies at level ' + level + '.');
+  var levelTime=Game.shimmerTypes.golden.maxTime*level/10;
+  if(Game.shimmerTypes.golden.time<levelTime) Game.shimmerTypes.golden.time=levelTime;
+//golden cookie with building special: var newShimmer=new Game.shimmer("golden");newShimmer.force="building special";
+}
 
 AutoPlay.handleClicking = function() {
   if (!Game.Achievements["Neverclick"].won && (Game.cookieClicks<=15) ) { AutoPlay.addActivity('Waiting for neverclick.'); return; }
@@ -259,6 +258,18 @@ AutoPlay.handleMinigames = function() {
   }
 }
 
+AutoPlay.nightAtTemple = function(on) {
+  if(!Game.isMinigameReady(Game.Objects["Temple"])) return;
+  if(on) {
+    AutoPlay.removeSpirit(1,"decadence");
+    AutoPlay.removeSpirit(2,"labor");
+    AutoPlay.assignSpirit(1,"asceticism",1);
+    AutoPlay.assignSpirit(2,"industry",1);
+  } else {
+    AutoPlay.removeSpirit(1,"asceticism");
+  }
+}
+
 AutoPlay.nightAtGarden = function(on) {
   if(!Game.isMinigameReady(Game.Objects["Farm"])) return;
   if(on!=Game.Objects["Farm"].minigame.freeze) FireEvent(l('gardenTool-2'),'click'); // (un)freeze garden
@@ -318,7 +329,7 @@ AutoPlay.findPlants = function(game,idx) {
   var couldPlant=0;
   if(AutoPlay.plantList[idx]!=0) {// already used
     var oldPlant=AutoPlay.plantDependencies[AutoPlay.plantList[idx]][0];
-    AutoPlay.addActivity("trying to get plant " + oldPlant + " on sector " + AutoPlay.sectorText(idx) + '.'); 
+    AutoPlay.addActivity("Trying to get plant " + oldPlant + " on sector " + AutoPlay.sectorText(idx) + '.'); 
 //	AutoPlay.info("currently we have " + oldPlant + " and it is unlocked " + game.plants[oldPlant].unlocked);
     if(game.plants[oldPlant].unlocked) AutoPlay.plantList[idx]=0; else return true;
   }
@@ -349,7 +360,7 @@ AutoPlay.findPlants = function(game,idx) {
 }
 
 AutoPlay.planting = function(game) {
-  if(!game.plants["meddleweed"].unlocked) { AutoPlay.addActivity("waiting for meddleweed."); AutoPlay.switchSoil(0,'fertilizer'); return; } // wait for meddleweed to appear
+  if(!game.plants["meddleweed"].unlocked) { AutoPlay.addActivity("Waiting for meddleweed."); AutoPlay.switchSoil(0,'fertilizer'); return; } // wait for meddleweed to appear
   if(!game.plants["crumbspore"].unlocked || !game.plants["brownMold"].unlocked) { // use meddleweed to get them
     AutoPlay.addActivity("Trying to get crumbspore and brown mold."); 
     for(var x=0;x<6;x++) for(var y=0;y<6;y++) if(game.isTileUnlocked(x,y)) AutoPlay.plantSeed("meddleweed",x,y);
@@ -466,7 +477,9 @@ AutoPlay.cleanSeed = function(g,x,y) {
   if(!g.isTileUnlocked(x,y)) return;
   var tile=g.getTile(x,y);
   if (tile[0] == 0) return;
-  if ((!g.plantsById[tile[0]-1].unlocked) && (tile[1]<=g.plantsById[tile[0]-1].mature)) return;
+  var plant=g.plantsById[tile[0]-1];
+  if ((!plant.unlocked) && (tile[1]<=plant.mature)) return;
+  if (plant.name=="Juicy queenbeet") return; // do not clean juicy queenbeets
   g.harvest(x,y);
 }
 
@@ -477,7 +490,7 @@ AutoPlay.harvesting = function(game) {
     var tile=game.getTile(x,y);
 	if(tile[0]) {
       var plant=game.plantsById[tile[0]-1];
-	  if(!plant.unlocked) { AutoPlay.plantPending=true; /*AutoPlay.info(plant.name + " is still growing, do not disturb!");*/ }
+	  if(!plant.unlocked || plant.name=="Juicy queenbeet") { AutoPlay.plantPending=true; /*AutoPlay.info(plant.name + " is still growing, do not disturb!");*/ }
       if (tile[0] != 0) { // some plant in this slot
         if (AutoPlay.plantCookies && tile[1]>=game.plantsById[tile[0]-1].mature) game.harvest(x,y); // is mature and can give cookies
         if (plant.ageTick+plant.ageTickR+tile[1] > 100) AutoPlay.harvest(game,x,y); // would die in next round
@@ -492,8 +505,11 @@ AutoPlay.harvest = function(game,x,y) {
 }
 
 AutoPlay.switchSoil = function(sector,which) { // 'dirt','fertilizer','clay','pebbles','woodchips'
-// cannot buy if (M.freeze || M.soil==me.id || M.nextSoil>Date.now() || M.parent.bought<me.req){return false;}
   if(sector) return;
+  var g=Game.Objects["Farm"].minigame;
+  if(g.nextSoil>Date.now()) return;
+  var me=g.soils[which];
+  if(g.soil==me.id || g.parent.bought<me.req) return;
   FireEvent(l('gardenSoil-'+Game.Objects["Farm"].minigame.soils[which].id),'click');
 }
 
@@ -617,12 +633,12 @@ AutoPlay.doAscend = function(str,log) {
 }
 
 //===================== Handle Achievements ==========================
-AutoPlay.wantedAchievements = [82, 12, 89, 130, 108, 223, 224, 225, 226, 227, 228, 229, 230, 279, 280, 372, 373, 374, 375, 390, 391, 366];
+AutoPlay.wantedAchievements = [82, 89, 130, 108, 223, 224, 225, 226, 227, 228, 229, 230, 279, 280, 372, 373, 374, 375, 390, 391, 366];
 AutoPlay.nextAchievement=AutoPlay.wantedAchievements[0];
 
 AutoPlay.endPhase = function() { return AutoPlay.wantedAchievements.indexOf(AutoPlay.nextAchievement)<0; }
 
-AutoPlay.mainActivity="doing nothing in particular";
+AutoPlay.mainActivity="Doing nothing in particular.";
 
 AutoPlay.setMainActivity = function(str) {
   AutoPlay.mainActivity=str;
@@ -634,7 +650,7 @@ AutoPlay.findNextAchievement = function() {
   for(i = 0; i < AutoPlay.wantedAchievements.length; i++) {
     if (!(Game.AchievementsById[AutoPlay.wantedAchievements[i]].won)) { 
 	  AutoPlay.nextAchievement = AutoPlay.wantedAchievements[i]; 
-	  AutoPlay.setMainActivity("trying to get achievement: " + Game.AchievementsById[AutoPlay.nextAchievement].desc);
+	  AutoPlay.setMainActivity("Trying to get achievement: " + Game.AchievementsById[AutoPlay.nextAchievement].desc);
 	  return; 
 	}
   }
@@ -770,10 +786,6 @@ function range(start, end) {
   for (var i = start; i <= end; i++) { foo.push(i); }
   return foo;
 }
-
-//===================== Cheats for Testing ==========================
-//create golden cookie: Game.shimmerTypes.golden.time = Game.shimmerTypes.golden.maxTime; or new Game.shimmer("golden")
-//golden cookie with building special: var newShimmer=new Game.shimmer("golden");newShimmer.force="building special";
 
 //===================== Init & Start ==========================
 
