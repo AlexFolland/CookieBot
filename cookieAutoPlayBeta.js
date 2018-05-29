@@ -682,14 +682,14 @@ AutoPlay.checkAllAchievementsOK = function(log) { // could remove the parameter 
   }
   // finished with playing: idle further
   AutoPlay.finished=true;
-  if(log) AutoPlay.setMainActivity("My job is done here, have a nice day. I am still idling along.");
+  if(log) AutoPlay.setMainActivity("My job here is done. Have a nice day. I am still idling along.");
   if(log) AutoPlay.nextAchievement=99; // follow the white rabbit (from dungeons)
   return false;
 }
 
 AutoPlay.leaveGame = function() {
   clearInterval(AutoPlay.autoPlayer); //stop autoplay: 
-  AutoPlay.info("My job is done here, have a nice day.");
+  AutoPlay.info("My job here is done. Have a nice day.");
   if(Game.bakeryName.slice(0,AutoPlay.robotName.length)==AutoPlay.robotName) { 
     Game.bakeryName = Game.bakeryName.slice(AutoPlay.robotName.length); Game.bakeryNamePrompt(); Game.ConfirmPrompt(); 
   }
@@ -710,7 +710,7 @@ AutoPlay.findMissingAchievements = function() { // just for testing purposes
 
 //===================== Handle Heavenly Upgrades ==========================
 AutoPlay.prioUpgrades = [363,323,411,412,413,264,265,266,267,268,181,282,283,284,291,393,394]; // legacy, dragon, lucky upgrades, permanent slots, season switcher, better golden cookies, kittens, synergies, 
-AutoPlay.kittens = [31,32,54,108,187,320,321,322,425,442];
+AutoPlay.kittens = [31,32,54,108,187,320,321,322,425,442,462];
 AutoPlay.cursors = [0,1,2,3,4,5,6,43,82,109,188,189];
 AutoPlay.chancemakers = [416,417,418,419,420,421,422,423,441];
 AutoPlay.butterBiscuits = [334,335,336,337,400];
