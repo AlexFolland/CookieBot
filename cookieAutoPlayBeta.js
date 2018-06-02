@@ -460,6 +460,8 @@ AutoPlay.cleaningGarden = function(game) {
   if(Game.Objects["Farm"].level<4) {
 	if(AutoPlay.plantList[0]==0) return;
     for(var y=2;y<5;y++) { AutoPlay.cleanSeed(game,2,y); AutoPlay.cleanSeed(game,4,y); }
+  } else if(Game.Objects["Farm"].level==4) {
+    for(var y=2;y<5;y++) { AutoPlay.cleanSeed(game,2,y); AutoPlay.cleanSeed(game,3,y); }
   } else {
     for(var sector=0; sector<4; sector++) AutoPlay.cleanSector(game,sector,AutoPlay.plantDependencies[AutoPlay.plantList[sector]][0]);
   }
@@ -641,7 +643,7 @@ AutoPlay.doAscend = function(str,log) {
 }
 
 //===================== Handle Achievements ==========================
-AutoPlay.wantedAchievements = [82, 89, 108, 225, 227, 228, 229, 230, 279, 280, 372, 373, 374, 375, 390, 391, 366];
+AutoPlay.wantedAchievements = [82, 89, 108, 225, 227, 229, 279, 280, 372, 373, 374, 375, 390, 391, 366];
 AutoPlay.nextAchievement=AutoPlay.wantedAchievements[0];
 
 AutoPlay.endPhase = function() { return AutoPlay.wantedAchievements.indexOf(AutoPlay.nextAchievement)<0; }
