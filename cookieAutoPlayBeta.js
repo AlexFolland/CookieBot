@@ -12,6 +12,7 @@ AutoPlay.finished=false;
 
 AutoPlay.run = function () {
   AutoPlay.activities = AutoPlay.mainActivity;
+  if(AutoPlay.plantPending) AutoPlay.addActivity("Do not ascend now, since we wait for plants to harvest!");
   if (Game.AscendTimer>0 || Game.ReincarnateTimer>0) return;
   if (AutoPlay.delay>0) { AutoPlay.delay--; return; }
   if (AutoPlay.nightMode()) { var age=Date.now()-Game.lumpT; AutoPlay.cheatSugarLumps(age); return; }
@@ -133,7 +134,7 @@ AutoPlay.handleSeasons = function() {
 	  case "easter": Game.Upgrades["Lovesick biscuit"].buy(); break; // go to valentine
 	  case "valentines": Game.Upgrades["Ghostly biscuit"].buy(); break; // go to halloween
 	  default: Game.Upgrades["Festive biscuit"].buy(); break; // go to christmas
-  } } else AutoPlay.addActivity('Waiting for all results in '+Game.season+'.'); 
+  } } else if (!(AutoPlay.allUnlocked(AutoPlay.allSeasonUpgrades))) AutoPlay.addActivity('Waiting for all results in '+Game.season+'.'); 
   if (Game.Upgrades["A festive hat"].bought && ! Game.Upgrades["Santa's dominion"].unlocked) { // develop santa
     Game.specialTab="santa"; Game.UpgradeSanta(); Game.ToggleSpecialMenu(0);
 } }
@@ -327,8 +328,8 @@ if(!AutoPlay.plantList) AutoPlay.plantList=[0,0,0,0];
 AutoPlay.plantPending=false; // Is there a plant we want and that is not mature yet?
 
 AutoPlay.sectorText = function(sector) {
-  if(Game.Objects["Farm"].level>4) return (sector%2?'right ':'left ')+(sector<2?'bottom':'top');
-  else if (Game.Objects["Farm"].level==4) return (sector%2?'right ':'left ');
+  if(Game.Objects["Farm"].level>4) return (sector%2?'left ':'right ')+(sector<2?'bottom':'top');
+  else if (Game.Objects["Farm"].level==4) return (sector%2?'left':'right');
   else return 'middle';
 }
 
@@ -398,7 +399,7 @@ AutoPlay.planting = function(game) {
   }
 }
 
-AutoPlay.plantSector = function(sector,plant1,plant2,plant0) { // The plants will be synchronized due to night mode
+AutoPlay.plantSector = function(sector,plant1,plant2,plant0) {
   var X=(sector%2)?0:3;
   var Y=(sector>1)?0:3;
   if(plant0=="dummy") {
@@ -439,13 +440,14 @@ AutoPlay.plantSeed = function(seed,whereX,whereY) {
 AutoPlay.seedCalendar = function(sector) {
   var g=Game.Objects["Farm"].minigame;
   AutoPlay.plantCookies = true;
-  if(!Game.Upgrades["Wheat slims"].bought && g.plants["bakerWheat"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); AutoPlay.addActivity("Trying to get Wheat slims."); return "bakerWheat"; }
-  if(!Game.Upgrades["Elderwort biscuits"].bought && g.plants["elderwort"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); AutoPlay.addActivity("Trying to get Elderwort cookies."); return "elderwort"; }
-  if(!Game.Upgrades["Bakeberry cookies"].bought && g.plants["bakeberry"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); AutoPlay.addActivity("Trying to get Bakeberry cookies."); return "bakeberry"; }
-  if(!Game.Upgrades["Fern tea"].bought && g.plants["drowsyfern"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); AutoPlay.addActivity("Trying to get Fern tea."); return "drowsyfern"; }
-  if(!Game.Upgrades["Duketater cookies"].bought && g.plants["duketater"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); AutoPlay.addActivity("Trying to get Duketater cookies."); return "duketater"; }
-  if(!Game.Upgrades["Green yeast digestives"].bought && g.plants["greenRot"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); AutoPlay.addActivity("Trying to get Green yeast digestives."); return "greenRot"; }
-  if(!Game.Upgrades["Ichor syrup"].bought && g.plants["ichorpuff"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); AutoPlay.addActivity("Trying to get Ichor syrup."); return "ichorpuff"; }
+  var doPrint = (sector==0) || (sector!=3 && Game.Objects["Farm"].level==sector+6);
+  if(!Game.Upgrades["Wheat slims"].bought && g.plants["bakerWheat"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); if(doPrint) AutoPlay.addActivity("Trying to get Wheat slims."); return "bakerWheat"; }
+  if(!Game.Upgrades["Elderwort biscuits"].bought && g.plants["elderwort"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); if(doPrint) AutoPlay.addActivity("Trying to get Elderwort cookies."); return "elderwort"; }
+  if(!Game.Upgrades["Bakeberry cookies"].bought && g.plants["bakeberry"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); if(doPrint) AutoPlay.addActivity("Trying to get Bakeberry cookies."); return "bakeberry"; }
+  if(!Game.Upgrades["Fern tea"].bought && g.plants["drowsyfern"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); if(doPrint) AutoPlay.addActivity("Trying to get Fern tea."); return "drowsyfern"; }
+  if(!Game.Upgrades["Duketater cookies"].bought && g.plants["duketater"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); if(doPrint) AutoPlay.addActivity("Trying to get Duketater cookies."); return "duketater"; }
+  if(!Game.Upgrades["Green yeast digestives"].bought && g.plants["greenRot"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); if(doPrint) AutoPlay.addActivity("Trying to get Green yeast digestives."); return "greenRot"; }
+  if(!Game.Upgrades["Ichor syrup"].bought && g.plants["ichorpuff"].unlocked) { AutoPlay.switchSoil(sector,'fertilizer'); if(doPrint) AutoPlay.addActivity("Trying to get Ichor syrup."); return "ichorpuff"; }
   AutoPlay.plantCookies = false;
   AutoPlay.switchSoil(sector,'clay'); //only when mature, otherwise it should be fertilizer
   //use garden to get cps and sugarlumps
@@ -500,7 +502,7 @@ AutoPlay.harvesting = function(game) {
     var tile=game.getTile(x,y);
 	if(tile[0]) {
       var plant=game.plantsById[tile[0]-1];
-	  if(!plant.unlocked || plant.name=="Juicy queenbeet") { AutoPlay.plantPending=true; /*AutoPlay.info(plant.name + " is still growing, do not disturb!");*/ }
+	  if(!plant.unlocked || plant.name=="Juicy queenbeet") { AutoPlay.plantPending=true; AutoPlay.addActivity(plant.name + " is still growing, do not disturb!");}
       if (tile[0] != 0) { // some plant in this slot
         if (AutoPlay.plantCookies && tile[1]>=game.plantsById[tile[0]-1].mature) game.harvest(x,y); // is mature and can give cookies
         if (plant.ageTick+plant.ageTickR+tile[1] > 100) AutoPlay.harvest(game,x,y); // would die in next round
@@ -537,12 +539,25 @@ AutoPlay.removeSpirit = function(slot, god) {
 }  
 
 //===================== Handle Wrinklers ==========================
+AutoPlay.nextWrinkler=0;
+AutoPlay.wrinklerTime=0;
+
 AutoPlay.handleWrinklers = function() {
   var doPop = (((Game.season == "easter") || (Game.season == "halloween")) && !AutoPlay.seasonFinished(Game.season));
   doPop = doPop || (Game.Upgrades["Unholy bait"].bought && !Game.Achievements["Moistburster"].won);
-  doPop = doPop || (AutoPlay.endPhase() && !Game.Achievements["Last Chance to See"].won);
-  if (doPop) AutoPlay.addActivity("Popping wrinklers for droppings and/or achievements.");
-  if (doPop) Game.wrinklers.forEach(function(w) { if (w.close==1) w.hp = 0; } );
+  doPop = doPop || (AutoPlay.grinding() && !Game.Achievements["Last Chance to See"].won);
+  if (doPop) {
+    AutoPlay.addActivity("Popping wrinklers for droppings and/or achievements.");
+    Game.wrinklers.forEach(function(w) { if (w.close==1) w.hp = 0; } );
+  } else if(AutoPlay.grinding()) {
+    AutoPlay.addActivity("Popping one wrinkler per 2 hours.");
+	if(Date.now()-AutoPlay.wrinklerTime >= 2*60*60*1000) {
+      var w=Game.wrinklers[AutoPlay.nextWrinkler];
+	  if (w.close==1) w.hp = 0;
+	  AutoPlay.wrinklerTime=Date.now();
+	  AutoPlay.nextWrinkler=(AutoPlay.nextWrinkler+1)%Game.getWrinklersMax();
+	}
+  }
 }
 
 //===================== Handle Small Achievements ==========================
@@ -578,7 +593,7 @@ AutoPlay.handleAscend = function() {
   if (AutoPlay.preNightMode()) return; //do not ascend right before the night
   if (AutoPlay.plantPending) return; // do not ascend when we wait for a plant to mature
   var ascendDays=10;
-  if (AutoPlay.endPhase() && !Game.Achievements["Endless cycle"].won && Game.Upgrades["Sucralosia Inutilis"].bought) { // this costs 2 minutes per 2 ascend
+  if (AutoPlay.grinding() && !Game.Achievements["Endless cycle"].won && Game.Upgrades["Sucralosia Inutilis"].bought) { // this costs 2 minutes per 2 ascend
     if ((Game.ascendMeterLevel > 0) && ((AutoPlay.ascendLimit < Game.ascendMeterLevel*Game.ascendMeterPercent) || ((Game.prestige+Game.ascendMeterLevel)%1000==777))) 
 	{ AutoPlay.doAscend("go for 1000 ascends",0); }
   }
@@ -643,10 +658,12 @@ AutoPlay.doAscend = function(str,log) {
 }
 
 //===================== Handle Achievements ==========================
-AutoPlay.wantedAchievements = [82, 89, 108, 225, 227, 229, 279, 280, 372, 373, 374, 375, 390, 391, 366];
+AutoPlay.wantedAchievements = [82, 89, 108, 225, 227, 229, 279, 372, 373, 374, 375, 390, 391, 366];
 AutoPlay.nextAchievement=AutoPlay.wantedAchievements[0];
 
 AutoPlay.endPhase = function() { return AutoPlay.wantedAchievements.indexOf(AutoPlay.nextAchievement)<0; }
+
+AutoPlay.grinding = function() { return Game.AchievementsById[373].won /*&& !Game.AchievementsById[391].won*/; }
 
 AutoPlay.mainActivity="Doing nothing in particular.";
 
@@ -768,6 +785,136 @@ AutoPlay.handleDragon = function() {
     Game.ConfirmPrompt(); Game.ToggleSpecialMenu(0); 
 } }
 
+//===================== Menu ==========================
+// menu: can access values with AutoPlay.Config.NightMode
+//somehow the toggle off goes away after some short period.
+
+AutoPlay.Backup = {};
+AutoPlay.Config = {};
+AutoPlay.ConfigData = {};
+AutoPlay.Disp = {};
+
+AutoPlay.ConfigPrefix = 'autoplayConfig';
+
+AutoPlay.SaveConfig = function(config) {
+	localStorage.setItem(AutoPlay.ConfigPrefix, JSON.stringify(config));
+}
+
+AutoPlay.LoadConfig = function() {
+	if (localStorage.getItem(AutoPlay.ConfigPrefix) != null) {
+		AutoPlay.Config = JSON.parse(localStorage.getItem(AutoPlay.ConfigPrefix));
+
+		// Check values
+		var mod = false;
+		for (var i in AutoPlay.ConfigDefault) {
+			if (typeof AutoPlay.Config[i] === 'undefined' || AutoPlay.Config[i] < 0 || AutoPlay.Config[i] >= AutoPlay.ConfigData[i].label.length) {
+				mod = true;
+				AutoPlay.Config[i] = AutoPlay.ConfigDefault[i];
+			}
+		}
+		if (mod) AutoPlay.SaveConfig(AutoPlay.Config);
+	}
+	else { // Default values
+		AutoPlay.RestoreDefault();
+	}
+}
+
+AutoPlay.RestoreDefault = function() {
+	AutoPlay.Config = {};
+	AutoPlay.SaveConfig(AutoPlay.ConfigDefault);
+	AutoPlay.LoadConfig();
+	Game.UpdateMenu();
+}
+
+AutoPlay.ToggleConfig = function(config) {
+	AutoPlay.ToggleConfigUp(config);
+	if (AutoPlay.Config[config] == 0) {
+		l(AutoPlay.ConfigPrefix + config).className = 'option off';
+	}
+	else {
+		l(AutoPlay.ConfigPrefix + config).className = 'option';
+	}
+}
+
+AutoPlay.WaitConfig = function(config) {
+}
+
+AutoPlay.ToggleConfigUp = function(config) {
+	AutoPlay.Config[config]++;
+	if (AutoPlay.Config[config] == AutoPlay.ConfigData[config].label.length) {
+		AutoPlay.Config[config] = 0;
+	}
+	l(AutoPlay.ConfigPrefix + config).innerHTML = AutoPlay.Disp.GetConfigDisplay(config);
+	AutoPlay.SaveConfig(AutoPlay.Config);
+}
+
+AutoPlay.ConfigData.NightMode = {label: ['OFF', 'AUTO', 'ON'], desc: 'Handling of night mode'};
+AutoPlay.ConfigData.ClickMode = {label: ['OFF', 'AUTO', 'DOUBLE', 'TRIPLE'], desc: 'Clicking speed'};
+AutoPlay.ConfigData.CheatLumps = {label: ['OFF', 'AUTO', 'LITTLE', 'MEDIUM', 'MUCH'], desc: 'Cheating of sugar lumps'};
+AutoPlay.ConfigData.CheatGolden = {label: ['OFF', 'AUTO', 'LITTLE', 'MEDIUM', 'MUCH'], desc: 'Cheating of golden cookies'};
+
+AutoPlay.ConfigDefault = {NightMode: 1, ClickMode: 1, CheatLumps: 1, CheatGolden: 1}; // default
+
+AutoPlay.LoadConfig();
+
+AutoPlay.Disp.GetConfigDisplay = function(config) {
+	return AutoPlay.ConfigData[config].label[AutoPlay.Config[config]];
+}
+
+AutoPlay.Disp.AddMenuPref = function() {
+	var header = function(text) {
+		var div = document.createElement('div');
+		div.className = 'listing';
+		div.style.padding = '5px 16px';
+		div.style.opacity = '0.7';
+		div.style.fontSize = '17px';
+		div.style.fontFamily = '\"Kavoon\", Georgia, serif';
+		div.textContent = text;
+		return div;
+	}
+
+	var frag = document.createDocumentFragment();
+
+	var div = document.createElement('div');
+	div.className = 'title ' + AutoPlay.Disp.colorTextPre + AutoPlay.Disp.colorBlue;
+	div.textContent = 'Cookiebot Options';
+	
+	frag.appendChild(div);
+
+	var listing = function(config,disabled) {
+		var div = document.createElement('div');
+		div.className = 'listing';
+		var a = document.createElement('a');
+		a.className = 'option';
+		if (AutoPlay.ConfigData[config].toggle && AutoPlay.Config[config] == 0) a.className = 'option off';
+		a.id = AutoPlay.ConfigPrefix + config;
+		a.onclick = function() { AutoPlay.ToggleConfig(config); };
+		if(disabled) a.onclick = function() { AutoPlay.WaitConfig(config); };
+		a.textContent = AutoPlay.Disp.GetConfigDisplay(config);
+		div.appendChild(a);
+		var label = document.createElement('label');
+		label.textContent = AutoPlay.ConfigData[config].desc;
+		div.appendChild(label);
+		return div;
+	}
+
+	frag.appendChild(listing('NightMode',true));
+	frag.appendChild(listing('ClickMode',true));
+	frag.appendChild(header('Cheating'));
+	frag.appendChild(listing('CheatLumps',true));
+	frag.appendChild(listing('CheatGolden',true));
+
+	l('menu').childNodes[2].insertBefore(frag, l('menu').childNodes[2].childNodes[l('menu').childNodes[2].childNodes.length - 1]);
+}
+
+AutoPlay.Backup.UpdateMenu = Game.UpdateMenu;
+Game.UpdateMenu = function() {
+	AutoPlay.Backup.UpdateMenu();
+	if (Game.onMenu == 'prefs') {
+		AutoPlay.Disp.AddMenuPref();
+	}
+}
+
 //===================== Auxiliary ==========================
 
 AutoPlay.info = function(s) { console.log("### "+s); Game.Notify("Automatic Playthrough",s,1,100); }
@@ -798,6 +945,14 @@ function range(start, end) {
 }
 
 //===================== Init & Start ==========================
+
+/* use something similar for loading the beta version
+AutoPlay.Disp.AddJscolor = function() {
+	AutoPlay.Disp.Jscolor = document.createElement('script');
+	AutoPlay.Disp.Jscolor.type = 'text/javascript';
+	AutoPlay.Disp.Jscolor.setAttribute('src', 'https://aktanusa.github.io/CookieMonster/jscolor/jscolor.js');
+	document.head.appendChild(AutoPlay.Disp.Jscolor);
+}*/
 
 AutoPlay.whatTheBotIsDoing = function() {
   return '<div style="padding:8px;width:400px;font-size:11px;text-align:center;">'+
